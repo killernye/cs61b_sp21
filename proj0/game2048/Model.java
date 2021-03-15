@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author JiangDong
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -137,7 +137,17 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
+        /* use board.tile(row, col) method to get a tile
+        the board DO NOT have empty space unless we find at least a tile is of NULL
+         */
+        int size = b.size();
+        for (int r = 0; r < size; r += 1) {
+            for (int c = 0; c < size; c += 1) {
+                if (b.tile(r, c) == null) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -147,7 +157,19 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+        /* use iterate over all the un-null tiles of B
+        to check if any tiles value equals MAX_PIECE
+         */
+        int size = b.size();
+        for (int r = 0; r < size; r += 1) {
+            for (int c = 0; c < size; c += 1) {
+                if (b.tile(r, c) != null) {
+                    if (b.tile(r, c).value() == MAX_PIECE) {
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 
@@ -158,8 +180,72 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        /* First condition is so easy.
+        Second is much more complicated. We will use some help functions.
+            find adjacent tiles
+            check if there exist any equal tiles.
+         */
+        if (emptySpaceExists(b)) return true;
+        int size = b.size();
+        for (int r = 0; r < size; r += 1) {
+            for (int c = 0; c < size; c += 1) {
+                Tile t = b.tile(c, r);
+                Tile[] tiles = adjacentTiles(b, r, c);
+                if (areSameValue(t, tiles)) {
+                    return true;
+                }
+            }
+        }
         return false;
+    }
+
+    /** There exist at least one tile which has same value to Tile T. */
+    private static boolean areSameValue(Tile t, Tile[] tiles) {
+        for (int i = 0; i < tiles.length; i += 1) {
+            if (t.value() == tiles[i].value()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    /** Return a array of tiles to which the tile (row r, col c in Board b) is adjacent */
+    private static Tile[] adjacentTiles(Board b, int r, int c) {
+        // find a problem here, I need to know how many adjacent tiles before I create array for them
+        int numOfTiles;
+        int size = b.size();
+        if ((r == 0 || r == size -1) && (c == 0 || c == size - 1)) {
+            // on the corner
+            numOfTiles = 2;
+        } else if (r == 0 || r == size -1) {
+            // on the side
+            numOfTiles = 3;
+        } else if (c == 0 || c == size - 1) {
+            // on the side
+            numOfTiles = 3;
+        } else {
+            numOfTiles = 4;
+        }
+
+        Tile [] tiles = new Tile[numOfTiles];
+        int k = 0;
+
+        // left right up down
+        if (c - 1 >= 0) {
+            tiles[k] = b.tile(c - 1, r);
+            k += 1;
+        }
+        if (c + 1 < size) {
+            tiles[k] = b.tile(c + 1, r);
+            k += 1;
+        }
+        if (r + 1 < size) {
+            tiles[k] = b.tile(c, r + 1);
+            k += 1;
+        }
+        if (r - 1 >= 0) {
+            tiles[k] = b.tile(c, r - 1);
+        }
+        return tiles;
     }
 
 
