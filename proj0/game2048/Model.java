@@ -114,9 +114,47 @@ public class Model extends Observable {
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
 
+        board.setViewingPerspective(side);
+
+        for (int col = 0; col < board.size(); col += 1) {
+            if (oneCollumTiltNorthOnly(col)) {
+                changed = true;
+            }
+        }
+        board.setViewingPerspective(Side.NORTH);
         checkGameOver();
         if (changed) {
             setChanged();
+        }
+        return changed;
+    }
+
+    /** Deal with Column COL only when the board was tilt north. Return True if changed*/
+    private boolean oneCollumTiltNorthOnly(int col){
+        boolean changed = false;
+        int highestPossibleRow = board.size() - 1;
+        for (int row = board.size() - 1; row >= 0; row -= 1) {
+            Tile tile = board.tile(col, row);
+            Tile targetTile = board.tile(col, highestPossibleRow);
+            if (row < highestPossibleRow && tile != null) {
+                if (targetTile == null) {
+                    board.move(col, highestPossibleRow, tile);
+                    changed = true;
+                } else {
+                    if (targetTile.value() == tile.value()) {
+                        board.move(col, highestPossibleRow, tile);
+                        score +=  tile.value() * 2;
+                        highestPossibleRow -= 1;
+                        changed = true;
+                    } else {
+                        highestPossibleRow -= 1;
+                        board.move(col,highestPossibleRow, tile);
+                        if (highestPossibleRow != row) {
+                            changed = true;
+                        }
+                    }
+                }
+            }
         }
         return changed;
     }
