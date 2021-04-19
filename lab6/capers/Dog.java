@@ -40,7 +40,7 @@ public class Dog implements java.io.Serializable {
      * @return Dog read from file
      */
     public static Dog fromFile(String name) {
-        File inFile = Utils.join(".capers", "dogs", name + ".txt");
+        File inFile = Utils.join(".capers", "dogs", name);
         Dog result = Utils.readObject(inFile, Dog.class);
         return result;
     }
@@ -58,7 +58,7 @@ public class Dog implements java.io.Serializable {
      * Saves a dog to a file for future use.
      */
     public void saveDog() {
-        File outfile = Utils.join(".capers", "dogs", this.name + ".txt");
+        File outfile = Utils.join(".capers", "dogs", this.name);
         Utils.writeObject(outfile, this);
     }
 
