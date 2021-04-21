@@ -1,7 +1,8 @@
 package bstmap;
 
-import java.util.Iterator;
-import java.util.Set;
+import edu.princeton.cs.algs4.SET;
+
+import java.util.*;
 
 public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
@@ -28,79 +29,79 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
         }
 
         /* Returns true if this tree contains the specified key. */
-        boolean containsKey(K key) {
-            int compareResult  = this.key.compareTo(key);
-            if (compareResult == 0) {
-                return true;
-            } else if (compareResult > 0) {
-                if (left != null) {
-                    return left.containsKey(key);
-                } else {
-                    return false;
-                }
-            } else {
-                if (right != null) {
-                    return right.containsKey(key);
-                } else {
-                    return false;
-                }
-            }
-        }
+//        boolean containsKey(K key) {
+//            int compareResult  = this.key.compareTo(key);
+//            if (compareResult == 0) {
+//                return true;
+//            } else if (compareResult > 0) {
+//                if (left != null) {
+//                    return left.containsKey(key);
+//                } else {
+//                    return false;
+//                }
+//            } else {
+//                if (right != null) {
+//                    return right.containsKey(key);
+//                } else {
+//                    return false;
+//                }
+//            }
+//        }
 
         /* change the value for a specified key, suppose the key exists */
-        void changeValue(K key, V value) {
-            BSTNode ptr = this;
-            while (ptr != null) {
-                int compareResult = ptr.key.compareTo(key);
-                if (compareResult == 0) {
-                    ptr.value = value;
-                    return;
-                } else if (compareResult > 0) {
-                    ptr = ptr.left;
-                } else {
-                    ptr = ptr.right;
-                }
-            }
-        }
+//        void changeValue(K key, V value) {
+//            BSTNode ptr = this;
+//            while (ptr != null) {
+//                int compareResult = ptr.key.compareTo(key);
+//                if (compareResult == 0) {
+//                    ptr.value = value;
+//                    return;
+//                } else if (compareResult > 0) {
+//                    ptr = ptr.left;
+//                } else {
+//                    ptr = ptr.right;
+//                }
+//            }
+//        }
 
         /* insert a new BSTNode to the tree. */
-        void insert(K key, V value) {
-            BSTNode node = new BSTNode(key, value);
-            int compareResult = this.key.compareTo(key);
-            if (compareResult > 0) {
-                if (this.left != null) {
-                    this.left.insert(key, value);
-                } else {
-                    this.left = node;
-                }
-            } else if (compareResult < 0) {
-                if (this.right != null) {
-                    this.right.insert(key, value);
-                } else {
-                    this.right = node;
-                }
-            }
-        }
+//        void insert(K key, V value) {
+//            BSTNode node = new BSTNode(key, value);
+//            int compareResult = this.key.compareTo(key);
+//            if (compareResult > 0) {
+//                if (this.left != null) {
+//                    this.left.insert(key, value);
+//                } else {
+//                    this.left = node;
+//                }
+//            } else if (compareResult < 0) {
+//                if (this.right != null) {
+//                    this.right.insert(key, value);
+//                } else {
+//                    this.right = node;
+//                }
+//            }
+//        }
 
         /* Returns the value mapping to a specified key. */
-        V get(K key) {
-            int compareResult = this.key.compareTo(key);
-            if (compareResult == 0) {
-                return this.value;
-            } else if (compareResult > 0) {
-                if (this.left == null) {
-                    return null;
-                } else {
-                    return this.left.get(key);
-                }
-            } else {
-                if (this.right == null) {
-                    return null;
-                } else  {
-                    return this.right.get(key);
-                }
-            }
-        }
+//        V get(K key) {
+//            int compareResult = this.key.compareTo(key);
+//            if (compareResult == 0) {
+//                return this.value;
+//            } else if (compareResult > 0) {
+//                if (this.left == null) {
+//                    return null;
+//                } else {
+//                    return this.left.get(key);
+//                }
+//            } else {
+//                if (this.right == null) {
+//                    return null;
+//                } else  {
+//                    return this.right.get(key);
+//                }
+//            }
+//        }
     }
 
     @Override
@@ -113,10 +114,22 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
     @Override
     /* Returns true if this map contains a mapping for the specified key. */
     public boolean containsKey(K key) {
-        if (root == null) {
+        return containsKey(root, key);
+    }
+
+    private boolean containsKey(BSTNode node, K key) {
+        if (node == null) {
             return false;
         }
-        return root.containsKey(key);
+
+        int compareResult = key.compareTo(node.key);
+        if (compareResult == 0) {
+            return true;
+        } else if (compareResult > 0) {
+            return containsKey(node.right, key);
+        } else {
+            return containsKey(node.left, key);
+        }
     }
 
     @Override
@@ -124,11 +137,25 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      * map contains no mapping for the key.
      */
     public V get(K key) {
-        if (root == null) {
+        return get(root, key);
+    }
+
+    private V get(BSTNode node, K key) {
+        if (node == null) {
             return null;
         }
-        return root.get(key);
+
+        int compareResult = key.compareTo(node.key);
+        if (compareResult == 0) {
+            return node.value;
+        } else if (compareResult > 0) {
+            return get(node.right, key);
+        } else {
+            return get(node.left, key);
+        }
     }
+
+
 
     @Override
     /* Returns the number of key-value mappings in this map. */
@@ -137,25 +164,33 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
     @Override
     /* Associates the specified value with the specified key in this map. */
     public void put(K key, V value) {
-        if (root == null) {
-            root = new BSTNode(key, value);
+        root = put(root, key, value);
+    }
+
+    private BSTNode put(BSTNode node, K key, V value) {
+        if (node == null) {
             size += 1;
-            return;
+            return new BSTNode(key, value);
         }
 
-        if (root.containsKey(key)) {
-            root.changeValue(key, value);
+        int compareResult = key.compareTo(node.key);
+        if (compareResult == 0) {
+            node.value= value;
+        } else if (compareResult > 0){
+            node.right = put(node.right, key, value);
         } else {
-            root.insert(key, value);
-            size += 1;
+            node.left = put(node.left, key, value);
         }
+
+        return node;
     }
 
     @Override
     /* Returns a Set view of the keys contained in this map. Not required for Lab 7.
      * If you don't implement this, throw an UnsupportedOperationException. */
     public Set<K> keySet() {
-        throw new UnsupportedOperationException("not implement yet");
+        List<K> keys = keys();
+        return new HashSet<>(keys);
     }
 
     @Override
@@ -163,7 +198,14 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      * Not required for Lab 7. If you don't implement this, throw an
      * UnsupportedOperationException. */
     public V remove(K key) {
-        throw new UnsupportedOperationException("not implement yet");
+        V res = get(key);
+        if (res == null) {
+            return null;
+        }
+
+        root = remove(root, key);
+        size -= 1;
+        return res;
     }
 
     @Override
@@ -171,15 +213,139 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
      * the specified value. Not required for Lab 7. If you don't implement this,
      * throw an UnsupportedOperationException.*/
     public V remove(K key, V value) {
-        throw new UnsupportedOperationException("not implement yet");
+        if (get(key).equals(value)) {
+            return remove(key);
+        }
+        return null;
+    }
+
+    private BSTNode remove(BSTNode node, K key) {
+        if (node == null) {
+            return null;
+        }
+
+        int cmp = key.compareTo(node.key);
+        if (cmp > 0) {
+            node.right =  remove(node.right, key);
+        } else if (cmp < 0) {
+            node.left = remove(node.left, key);
+        } else {
+            if (node.left == null) return node.right;
+            if (node.right == null) return node.left;
+
+            BSTNode t = node;
+            node = min(t.right);
+            node.right = deleteMin(t.right);
+            node.left = t.left;
+        }
+        return node;
+    }
+
+    private BSTNode deleteMin(BSTNode node) {
+        if (node == null) {
+            return null;
+        }
+
+        if (node.left == null) {
+            return node.right;
+        } else {
+            node.left = deleteMin(node.left);
+            return node;
+        }
+    }
+
+    private BSTNode min(BSTNode node) {
+        if (node == null) {
+            return null;
+        }
+
+        if (node.left == null) {
+            return node;
+        } else {
+            return min(node.left);
+        }
     }
 
     @Override
     /* Returns a Iterator which can iterate through all the keys. */
     public Iterator<K> iterator() {
-        throw new UnsupportedOperationException("not implement yet");
+        return new KeyIterator();
+    }
+
+    private class KeyIterator implements Iterator<K> {
+        int counter;
+        List<K> keys;
+
+        KeyIterator() {
+            counter = 0;
+            keys = keys();
+        }
+
+
+        /**
+         * Returns {@code true} if the iteration has more elements.
+         * (In other words, returns {@code true} if {@link #next} would
+         * return an element rather than throwing an exception.)
+         *
+         * @return {@code true} if the iteration has more elements
+         */
+        @Override
+        public boolean hasNext() {
+            return counter < size();
+        }
+
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         */
+        @Override
+        public K next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("no more elements");
+            }
+
+            K res = keys.get(counter);
+            counter += 1;
+            return res;
+        }
     }
 
     /* prints out your BSTMap in order of increasing Key. */
-    public void printInOrder() {}
+    public void printInOrder() {
+        //printInOrder(root);
+
+        List<K> keys = keys();
+        System.out.println(keys);
+    }
+
+
+    private List<K> keys() {
+        List<K> ks = new ArrayList<>();
+        keys(root, ks);
+
+        return ks;
+    }
+
+    private void keys(BSTNode node, List<K> keys) {
+        if (node == null) {
+            return;
+        }
+
+        keys(node.left, keys);
+        keys.add(node.key);
+        keys(node.right, keys);
+    }
+
+
+    private void printInOrder(BSTNode node) {
+        if (node == null) {
+            return;
+        }
+
+        printInOrder(node.left);
+        System.out.println(node.key);
+        printInOrder(node.right);
+    }
 }
