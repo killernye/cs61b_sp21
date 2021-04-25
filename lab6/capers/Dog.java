@@ -21,6 +21,16 @@ public class Dog implements java.io.Serializable {
     /** Name of dog. */
     private String name;
 
+    private Dog brother;
+
+    public void setBrother(Dog d) {
+        this.brother = d;
+    }
+
+    public Dog getBrother() {
+        return this.brother;
+    }
+
     /**
      * Creates a dog object with the specified parameters.
      * @param name Name of dog
