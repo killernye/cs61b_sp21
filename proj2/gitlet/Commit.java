@@ -1,22 +1,19 @@
 package gitlet;
 
-// TODO: any imports you need here
 
 import java.io.File;
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static gitlet.Utils.*;
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+ *  A commit consist a version of the snapshot of all the tracked file.
  *
- *  @author TODO
+ *  @author NYE
  */
 public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
-     *
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
@@ -26,6 +23,7 @@ public class Commit implements Serializable {
     private String message;
 
     /** TimeStamp. */
+    Date date;
 
     /** Parent1 commit. */
     String parent1;
@@ -36,19 +34,41 @@ public class Commit implements Serializable {
     /** mapping fileName =======> blob name. */
     Map<String, String> blobMap;
 
-    /* TODO: fill in the rest of this class. */
+    /** SHA-1 Value of this commit. */
+    String name;
 
-    /** Creating a fresh Start Commit. */
-    public Commit(String m) {
+    /**
+     * Constructors.
+     */
+    public Commit(String m, Date d, String p1, String p2) {
         message = m;
-        parent1 = null;
-        parent2 = null;
+        date = d;
+        parent1 = p1;
+        parent2 = p2;
         blobMap = new HashMap<>();
+        name = "haven't get a sha-1 name yet";
     }
+
+
+    /**
+     * List all the method below.
+     */
+
+    /** Read a Commit from file. */
+    public static Commit readCommit(String inFile) {
+        if (inFile == null) {
+            return null;
+        }
+
+        File file = join(Repository.COMMITS_DIR, inFile);
+        return readObject(file, Commit.class);
+    }
+
 
     /** Save a Commit. */
     public void saveCommit() {
         String commitName = commitName();
+        name  = commitName;
         File outFile = join(Repository.COMMITS_DIR, commitName);
         writeObject(outFile, this);
     }
@@ -80,8 +100,61 @@ public class Commit implements Serializable {
         return blobMap.containsKey(file);
     }
 
+    /** Returns the sha-1 name of the version of the file which this commit keeps. */
+    public String getBlob(String fileName) {
+        return blobMap.get(fileName);
+    }
+
+
     /** Check if the content of this file the same with the commit version. */
     public boolean isIdentical(String name, String shaValue) {
         return shaValue.equals(blobMap.get(name));
     }
+
+    @Override
+    /** Print the nice log version of a commit. */
+    public String toString() {
+        StringBuffer sb = new StringBuffer("===\n");
+        sb.append("commit ");
+        sb.append(name);
+        sb.append('\n');
+
+        String pattern = "EEE, d MMM yyyy HH:mm:ss Z";
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        String a  = sdf.format(date);
+        sb.append(a);
+        sb.append('\n');
+
+        sb.append(message);
+        sb.append('\n');
+
+        return sb.toString();
+    }
+
+    /** Clone from a parent commit and incorporate the changes from the stage area.
+     *  Returns the sha1 value of new commit.
+     */
+    static String cloneAndChange(String parent, Map<String, String> stage, String m) {
+        Commit p = readCommit(parent);
+        Date d = new Date();
+        Commit c = new Commit(m, d, parent, null);
+
+        c.blobMap = p.blobMap;
+        for (Map.Entry<String, String> pair: stage.entrySet()) {
+            c.blobMap.put(pair.getKey(), pair.getValue());
+        }
+
+        c.saveCommit();
+        return c.commitName();
+    }
+
+    /** Create a new Commit. */
+    static String createCommit(String m, Date d, String p1, String p2) {
+        Commit c = new Commit(m, d, p1, p2);
+        String name = c.commitName();
+        c.saveCommit();
+
+        return name;
+    }
+
 }

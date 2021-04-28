@@ -1,7 +1,7 @@
 package gitlet;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+ *  @author NYE
  */
 public class Main {
 
@@ -9,9 +9,9 @@ public class Main {
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
     public static void main(String[] args) {
-        // TODO: what if args is empty?
         if (args.length == 0) {
-            throw new RuntimeException("Must have at least one argument.");
+            Utils.message("Please enter a command.");
+            System.exit(0);
         }
 
         String firstArg = args[0];
@@ -21,16 +21,16 @@ public class Main {
         switch(firstArg) {
             case "init":
                 validateNumArgs("init", args, 1);
-                Repository.repositoryInit();
+                Repository.init();
                 break;
             case "add":
                 validateNumArgs("add", args, 2);
                 fileName = args[1];
-                Repository.addFile(fileName);
+                Repository.add(fileName);
                 break;
             case "log":
                 validateNumArgs("log", args, 1);
-                Repository.repositoryLog();
+                Repository.log();
                 break;
             case "commit":
                 //java gitlet.Main commit [message]
@@ -44,15 +44,20 @@ public class Main {
 
                 if (args.length == 3) {
                     fileName = args[2];
-                    Repository.checkout("head", fileName);
+                    Repository.checkout(fileName, "head");
                 } else if (args.length == 4) {
                     fileName = args[3];
                     commitId = args[1];
                     Repository.checkout(fileName, commitId);
                 }
                 break;
+            case "status":
+                validateNumArgs("log", args, 1);
+                Repository.status();
+                break;
             default:
-                throw new RuntimeException("Unknown command");
+                Utils.message("No command with that name exists.");
+                System.exit(0);
         }
     }
 
@@ -67,8 +72,8 @@ public class Main {
      */
     public static void validateNumArgs(String cmd, String[] args, int n) {
         if (args.length != n) {
-            throw new RuntimeException(
-                    String.format("Invalid number of arguments for: %s.", cmd));
+            Utils.message("Incorrect operands.");
+            System.exit(0);
         }
     }
 }

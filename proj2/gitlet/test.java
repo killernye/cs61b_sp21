@@ -1,9 +1,8 @@
 package gitlet;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class test {
     public static void main(String[] args) {
@@ -15,10 +14,13 @@ public class test {
 //            System.out.println("err");
 //        }
 
-        Commit c = new Commit("nihao");
-        c.saveCommit();
+//        Commit c = new Commit("nihao");
+//        c.saveCommit();
 
-
+        Set<String> ss = new HashSet<>();
+        ss.add("one");
+        ss.add("two");
+        System.out.println(ss);
 
     }
 }
