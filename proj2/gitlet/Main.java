@@ -41,19 +41,45 @@ public class Main {
             case "checkout":
                 // java gitlet.Main checkout -- [file name]
                 // java gitlet.Main checkout [commit id] -- [file name]
-
-                if (args.length == 3) {
+                // java gitlet.Main checkout [branch name]
+                if (args.length == 3 && args[1].equals("--")) {
                     fileName = args[2];
                     Repository.checkout(fileName, "head");
-                } else if (args.length == 4) {
+                } else if (args.length == 4 && args[2].equals("--")) {
                     fileName = args[3];
                     commitId = args[1];
                     Repository.checkout(fileName, commitId);
+                } else if (args.length == 2) {
+                    String branch = args[1];
+                    Repository.checkout(branch);
+                } else {
+                    Utils.message("Incorrect operands.");
+                    System.exit(0);
                 }
                 break;
             case "status":
-                validateNumArgs("log", args, 1);
+                validateNumArgs("status", args, 1);
                 Repository.status();
+                break;
+            case "global-log":
+                validateNumArgs("global-log", args, 1);
+                Repository.globalLog();
+                break;
+            case "find":
+                validateNumArgs("find", args, 2);
+                Repository.find(args[1]);
+                break;
+            case "branch":
+                validateNumArgs("branch", args, 2);
+                Repository.branch(args[1]);
+                break;
+            case "rm-branch":
+                validateNumArgs("rm-branch", args, 2);
+                Repository.rmBranch(args[1]);
+                break;
+            case "reset":
+                validateNumArgs("reset", args, 2);
+                Repository.reset(args[1]);
                 break;
             default:
                 Utils.message("No command with that name exists.");

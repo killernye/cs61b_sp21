@@ -17,10 +17,14 @@ public class test {
 //        Commit c = new Commit("nihao");
 //        c.saveCommit();
 
-        Set<String> ss = new HashSet<>();
+        Set<String> ss = new TreeSet<>();
         ss.add("one");
         ss.add("two");
-        System.out.println(ss);
+        ss.add("q");
+        ss.add("a");
+        for (String s: ss) {
+            System.out.println(s);
+        }
 
     }
 }

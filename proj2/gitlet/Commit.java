@@ -20,7 +20,7 @@ public class Commit implements Serializable {
      */
 
     /** The message of this Commit. */
-    private String message;
+    String message;
 
     /** TimeStamp. */
     Date date;
@@ -55,12 +55,18 @@ public class Commit implements Serializable {
      */
 
     /** Read a Commit from file. */
-    public static Commit readCommit(String inFile) {
-        if (inFile == null) {
+    public static Commit readCommit(String commitId) {
+        if (commitId == null) {
             return null;
         }
 
-        File file = join(Repository.COMMITS_DIR, inFile);
+        File file = join(Repository.COMMITS_DIR, commitId);
+
+        if  (!file.exists()) {
+            Utils.message("No commit with that id exists.");
+            System.exit(0);
+        }
+
         return readObject(file, Commit.class);
     }
 
@@ -79,6 +85,8 @@ public class Commit implements Serializable {
         List<String> lst = new LinkedList<>();
         lst.add(message);
 
+        lst.add(date.toString());
+
         if (parent1 != null) {
                 lst.add(parent1);
         }
@@ -96,8 +104,8 @@ public class Commit implements Serializable {
     }
 
     /** Check if this commit contains a file. */
-    public boolean containsFile(String file) {
-        return blobMap.containsKey(file);
+    public boolean containsFile(String fileName) {
+        return blobMap.containsKey(fileName);
     }
 
     /** Returns the sha-1 name of the version of the file which this commit keeps. */
@@ -131,10 +139,24 @@ public class Commit implements Serializable {
         return sb.toString();
     }
 
+    /** Restore a file in the working directory to the version of this commit. */
+    public void checkout(String fileName) {
+        if (!this.containsFile(fileName)) {
+            Utils.message("File does not exist in that commit.");
+            System.exit(0);
+        }
+
+        File outFile = Utils.join(Repository.CWD, fileName);
+        File inFile = Utils.join(Repository.BlOBS_DIR, fileName, getBlob(fileName));
+
+        byte[] contents = Utils.readContents(inFile);
+        Utils.writeContents(outFile, contents);
+    }
+
     /** Clone from a parent commit and incorporate the changes from the stage area.
      *  Returns the sha1 value of new commit.
      */
-    static String cloneAndChange(String parent, Map<String, String> stage, String m) {
+    static String cloneAndChange(String parent, Map<String, String> stage, Set<String> removed, String m) {
         Commit p = readCommit(parent);
         Date d = new Date();
         Commit c = new Commit(m, d, parent, null);
@@ -142,6 +164,10 @@ public class Commit implements Serializable {
         c.blobMap = p.blobMap;
         for (Map.Entry<String, String> pair: stage.entrySet()) {
             c.blobMap.put(pair.getKey(), pair.getValue());
+        }
+
+        for (String fileName: removed) {
+            c.blobMap.remove(fileName);
         }
 
         c.saveCommit();

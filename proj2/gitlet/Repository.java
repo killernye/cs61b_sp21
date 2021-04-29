@@ -2,10 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -28,6 +25,7 @@ public class Repository implements Serializable {
 
     /** Staging Area. */
     Map<String, String> staged;
+    Set<String> removed;
 
     /** Head Pointer which points the branch we are currently working with. */
     String head;
@@ -52,10 +50,11 @@ public class Repository implements Serializable {
         Date date = new Date(0);
         String commit = Commit.createCommit(message, date, null, null);
 
-        branches = new HashMap<>();
+        branches = new TreeMap<>();
         branches.put("master", commit);
 
-        staged = new HashMap<>();
+        staged = new TreeMap<>();
+        removed = new TreeSet<>();
     }
 
 
@@ -141,8 +140,8 @@ public class Repository implements Serializable {
         }
 
         Repository repo = readRepo();
-        // TODO Check if staged is empty
-        if (repo.staged.isEmpty()) {
+        // Check if staged is empty
+        if (repo.staged.isEmpty() && repo.removed.isEmpty()) {
             Utils.message("No changes added to the commit.");
             System.exit(0);
         }
@@ -152,19 +151,19 @@ public class Repository implements Serializable {
             System.exit(0);
         }
 
-        // TODO copy HEAD commit and change the file in the staged
-        String head = repo.branches.get(repo.head);
-        String commit = Commit.cloneAndChange(head, repo.staged, message);
+        // copy HEAD commit and change the file in the staged
+        String current = repo.branches.get(repo.head);
+        String commit = Commit.cloneAndChange(current, repo.staged, repo.removed, message);
         repo.staged.clear();
 
 
-        // TODO change repo metadata
+        // change repo metadata
         repo.branches.put(repo.head, commit);
         saveRepo(repo);
     }
 
     /**
-     * List the commit log of this repo.
+     * List the commit log starting from head commit.
      */
     public static void log() {
         if (!isInit()) {
@@ -183,10 +182,158 @@ public class Repository implements Serializable {
     }
 
     /**
+     * List all the commits ever made in this repo.
+     */
+    public static void globalLog() {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        // Read all the logs
+        List<String> commits = Utils.plainFilenamesIn(COMMITS_DIR);
+        for (String id: commits) {
+            Commit c = Commit.readCommit(id);
+            System.out.println(c);
+        }
+    }
+
+    /**
+     * Prints out the ids of all commits that have the given commit message, one per line.
+     */
+    public static void find(String message) {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        List<String> commits = Utils.plainFilenamesIn(COMMITS_DIR);
+        for (String fileName: commits) {
+            Commit c = Commit.readCommit(fileName);
+            if (c.message.equals(message)) {
+                System.out.println(c.name);
+            }
+        }
+    }
+
+    /**
      * Restore specified file to the older version.
      */
     public static void checkout(String fileName, String commitId) {
-        //TODO
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+        Commit c = null;
+        if (commitId.equals("head")) {
+            c = headPtr(repo);
+        } else if (commitId.length() >= 40){
+            c = Commit.readCommit(commitId);
+        } else {
+            List<String> commits = Utils.plainFilenamesIn(COMMITS_DIR);
+            for (String id: commits) {
+                if (id.startsWith(commitId)) {
+                    c = Commit.readCommit(id);
+                    break;
+                }
+            }
+            if (c == null) {
+                Utils.message("No commit with that id exists.");
+                System.exit(0);
+            }
+        }
+
+        c.checkout(fileName);
+    }
+
+    /**
+     * Checkout a given branch.
+     */
+    public static void checkout(String branch) {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+
+        if (!repo.branches.containsKey(branch)) {
+            Utils.message("No such branch exists.");
+            System.exit(0);
+        }
+
+        if (branch.equals(repo.head)) {
+            Utils.message("No need to checkout the current branch.");
+            System.exit(0);
+        }
+
+        if (repo.containsUntrackedFile()) {
+            Utils.message("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+
+        repo.head = branch;
+        repo.staged.clear();
+        repo.removed.clear();
+        Commit current = headPtr(repo);
+
+        //  Restore working directory from the given branch commit
+        //  Delete the files not tracked by the given branch
+        List<String> workingFile = Utils.plainFilenamesIn(CWD);
+        for (String fileName: workingFile) {
+            if (!current.containsFile(fileName)) {
+                File file = Utils.join(CWD, fileName);
+                Utils.restrictedDelete(file);
+            } else {
+                current.checkout(fileName);
+            }
+        }
+
+        saveRepo(repo);
+    }
+
+    /**
+     * Checks out all the files tracked by the given commit.
+     */
+    public static void reset(String commitId) { //TODO
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+        String id = isValidCommitID(commitId);
+        if (id == null) {
+            Utils.message("No commit with that id exists.");
+            System.exit(0);
+        }
+
+        if (repo.containsUntrackedFile()) {
+            Utils.message("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+
+
+        repo.staged.clear();
+        repo.removed.clear();
+        repo.branches.put(repo.head, id);
+
+        Commit current = Commit.readCommit(id);
+        //  Restore working directory from the given branch commit
+        //  Delete the files not tracked by the given branch
+        List<String> workingFile = Utils.plainFilenamesIn(CWD);
+        for (String fileName: workingFile) {
+            if (!current.containsFile(fileName)) {
+                File file = Utils.join(CWD, fileName);
+                Utils.restrictedDelete(file);
+            } else {
+                current.checkout(fileName);
+            }
+        }
+
+        saveRepo(repo);
     }
 
     /**
@@ -199,11 +346,54 @@ public class Repository implements Serializable {
         }
 
         Repository repo = readRepo();
-        Set<String> stage = repo.staged.keySet();
-        System.out.println(stage);
 
+        System.out.println(repo);
     }
 
+    /**
+     * Creates a new branch with the given name, and points it at the current head commit.
+     */
+    public static void branch(String branchName) {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+        if (repo.branches.containsKey(branchName)) {
+            Utils.message("A branch with that name already exists.");
+            System.exit(0);
+        }
+
+        String head = repo.branches.get(repo.head);
+        repo.branches.put(branchName, head);
+
+        saveRepo(repo);
+    }
+
+    /**
+     * Deletes the branch with the given name.
+     */
+    public static void rmBranch(String branchName) {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+        if (!repo.branches.containsKey(branchName)) {
+            Utils.message("A branch with that name does not exist.");
+            System.exit(0);
+        }
+
+        if (branchName.equals(repo.head)) {
+            Utils.message("Cannot remove the current branch.");
+            System.exit(0);
+        }
+
+        repo.branches.remove(branchName);
+        saveRepo(repo);
+    }
 
     /**
      *  List ALL the Helper FUNCTION below.
@@ -270,8 +460,123 @@ public class Repository implements Serializable {
     }
 
     /**
+     * Check if a commit Id is valid.
+     * if it is, returns the complete id (some given ids are shorten version.)
+     * otherwise return null.
+     */
+    private static String isValidCommitID(String id) {
+        List<String> commits = Utils.plainFilenamesIn(COMMITS_DIR);
+
+        if (id.length() > 40) {
+            return null;
+        } else if (id.length() == 40) {
+            if (commits.contains(id)) {
+                return id;
+            } else {
+                return null;
+            }
+        } else {
+            for (String commitId: commits) {
+                if (commitId.startsWith(id)) {
+                    return commitId;
+                }
+            }
+            return null;
+        }
+    }
+
+
     /** check if in an initialized Gitlet Directory. */
     static boolean isInit() {
         return GITLET_DIR.exists();
+    }
+
+    @Override
+    /** Repo Status. */
+    public String toString() {
+        StringBuffer sb = new StringBuffer("=== Branches ===\n");
+        Set<String> branchesKey = branches.keySet();
+        for(String b: branchesKey) {
+            if (b.equals(head)) {
+                sb.append("*");
+            }
+            sb.append(b);
+            sb.append('\n');
+        }
+
+        sb.append("\n=== Staged Files ===\n");
+        for(String s: staged.keySet()) {
+            sb.append(s);
+            sb.append('\n');
+        }
+
+        sb.append("\n=== Removed File ===\n");
+        for (String r: removed) {
+            sb.append(r);
+            sb.append('\n');
+        }
+
+        sb.append("\n=== Modifications Not Staged For Commit ===\n");
+
+        List<String> workingFile = Utils.plainFilenamesIn(CWD);
+        Set<String> modified = new TreeSet<>();
+        Commit current = headPtr(this);
+
+        for (String fileName: workingFile) {
+            File file = Utils.join(CWD, fileName);
+            String sha1 = sha1File(file);
+
+            if (!isStaged(this, fileName) && !this.removed.contains(fileName)) {
+                if (current.containsFile(fileName) && !current.isIdentical(fileName, sha1)) {
+                    modified.add(fileName);
+                }
+            } else if (isStaged(this, fileName)){
+
+                if(!isIdentical(this, fileName, sha1)) {
+                    modified.add(fileName);
+                }
+            }
+        }
+        for (String fileName: staged.keySet()) {
+            if (!workingFile.contains(fileName)) {
+                modified.add(fileName);
+            }
+        }
+
+        for (String fileName: current.blobMap.keySet()) {
+            if (!removed.contains(fileName) && !workingFile.contains(fileName)) {
+                modified.add(fileName);
+            }
+        }
+
+        for (String s: modified) {
+            sb.append(s);
+            sb.append('\n');
+        }
+
+
+        sb.append("\n=== Untracked Files ===\n");
+
+        for (String fileName: workingFile) {
+            if (!isStaged(this, fileName) && !current.containsFile(fileName)) {
+                sb.append(fileName);
+                sb.append('\n');
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /** check if untracked files exist. */
+    public boolean containsUntrackedFile() {
+        List<String> workingFile = Utils.plainFilenamesIn(CWD);
+        Commit current = headPtr(this);
+
+        for (String fileName: workingFile) {
+            if (!isStaged(this, fileName) && !current.containsFile(fileName)) {
+                return true;
+            }
+        }
+        return  false;
     }
 }
