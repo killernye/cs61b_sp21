@@ -132,12 +132,13 @@ public class Repository implements Serializable {
     /**
      * Snapshot the staging area making a commit.
      */
-    public static void commit(String message) {
-        // TODO check if init
+    public static void commit(String message, String parent2) {
+        // check if init
         if (!isInit()) {
             Utils.message("Not in an initialized Gitlet directory.");
             System.exit(0);
         }
+
 
         Repository repo = readRepo();
         // Check if staged is empty
@@ -153,7 +154,7 @@ public class Repository implements Serializable {
 
         // copy HEAD commit and change the file in the staged
         String current = repo.branches.get(repo.head);
-        String commit = Commit.cloneAndChange(current, repo.staged, repo.removed, message);
+        String commit = Commit.cloneAndChange(current, repo.staged, repo.removed, message, null);
         repo.staged.clear();
 
 
@@ -395,10 +396,129 @@ public class Repository implements Serializable {
         saveRepo(repo);
     }
 
+    /** Merge Current branch to the given branch. */
+    public static void merge(String other) {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+        if (!repo.staged.isEmpty() || !repo.removed.isEmpty()) {
+            Utils.message("You have uncommitted changes.");
+            System.exit(0);
+        }
+
+        if (!repo.branches.containsKey(other)) {
+            Utils.message("A branch with that name does not exist.");
+            System.exit(0);
+        }
+
+        if (other.equals(repo.branches.get(repo.head))) {
+            Utils.message("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+
+        if (repo.containsUntrackedFile()) {
+            Utils.message("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+
+        String headId = repo.branches.get(repo.head);
+        String otherId = repo.branches.get(other);
+
+        String split = Commit.splitId(headId, otherId);
+
+        if (split.equals(otherId)) {
+            Utils.message("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+
+        if (split.equals(headId)) {
+            checkout(other);
+            Utils.message("Current branch fast-forwarded.");
+            System.exit(0);
+        }
+
+        Set<String> allFiles = new HashSet<>();
+        Commit firstC = Commit.readCommit(headId);
+        Commit secondC = Commit.readCommit(otherId);
+        Commit splitC = Commit.readCommit(split);
+
+        Set<String> firstFiles = firstC.files();
+        Set<String> secondFiles = secondC.files();
+        Set<String> splitFiles = splitC.files();
+
+        allFiles.addAll(firstFiles);
+        allFiles.addAll(secondFiles);
+        allFiles.addAll(splitFiles);
+
+        String message = "Merged " + other + " into " + repo.head +".";
+
+        for (String fileName: allFiles) {
+            if (!splitC.containsFile(fileName)) {
+                if (firstC.containsFile(fileName) && secondC.containsFile(fileName)) {
+                    if (Commit.isModified(fileName, firstC, secondC)) {
+                        String res = Commit.conflict(fileName, firstC, secondC);
+                        repo.staged.put(fileName, res);
+                        writeFile(fileName, res);
+                        message = "Encountered a merge conflict.";
+                    }
+                } else if (!firstC.containsFile(fileName)) {
+                    String blob = secondC.getBlob(fileName);
+                    writeFile(fileName, blob);
+                    repo.staged.put(fileName, blob);
+                }
+            } else {
+                if (firstC.containsFile(fileName) && secondC.containsFile(fileName)) {
+                    if (Commit.isModified(fileName, splitC, firstC) && Commit.isModified(fileName, splitC, secondC)) {
+                        if (Commit.isModified(fileName, firstC, secondC)) {
+                            String res = Commit.conflict(fileName, firstC, secondC);
+                            repo.staged.put(fileName, res);
+                            writeFile(fileName, res);
+                            message = "Encountered a merge conflict.";
+                        }
+                    } else if (Commit.isModified(fileName, splitC, secondC)) {
+                        String blob = secondC.getBlob(fileName);
+                        writeFile(fileName, blob);
+                        repo.staged.put(fileName, blob);
+                    }
+                } else if (firstC.containsFile(fileName)) {
+                    if (Commit.isModified(fileName, splitC, firstC)) {
+                        String res = Commit.conflict(fileName, firstC, secondC);
+                        repo.staged.put(fileName, res);
+                        writeFile(fileName, res);
+                        message = "Encountered a merge conflict.";
+                    } else {
+                        repo.removed.add(fileName);
+                    }
+                } else if (secondC.containsFile(fileName)) {
+                    if (Commit.isModified(fileName, splitC, secondC)) {
+                        String res = Commit.conflict(fileName, firstC, secondC);
+                        repo.staged.put(fileName, res);
+                        writeFile(fileName, res);
+                        message = "Encountered a merge conflict.";
+                    }
+                }
+            }
+        }
+
+        saveRepo(repo);
+        commit(message, other);
+    }
+
     /**
      *  List ALL the Helper FUNCTION below.
      *  List ALL the Helper FUNCTION below.
      */
+
+    /** Rewrite a file to the given ID version. */
+    public static void writeFile(String fileName, String blobId) {
+        File file = Utils.join(CWD, fileName);
+        File blob = Utils.join(BlOBS_DIR, fileName, blobId);
+
+        writeContents(file, readContents(blob));
+    }
 
     /** Create a Repo. */
     private static Repository createRepo() {
@@ -484,6 +604,9 @@ public class Repository implements Serializable {
             return null;
         }
     }
+
+
+
 
 
     /** check if in an initialized Gitlet Directory. */

@@ -36,7 +36,7 @@ public class Main {
                 //java gitlet.Main commit [message]
                 validateNumArgs("commit", args, 2);
                 message = args[1];
-                Repository.commit(message);
+                Repository.commit(message, null);
                 break;
             case "checkout":
                 // java gitlet.Main checkout -- [file name]
@@ -80,6 +80,10 @@ public class Main {
             case "reset":
                 validateNumArgs("reset", args, 2);
                 Repository.reset(args[1]);
+                break;
+            case "merge":
+                validateNumArgs("merge", args, 2);
+                Repository.merge(args[1]);
                 break;
             default:
                 Utils.message("No command with that name exists.");

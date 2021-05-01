@@ -54,6 +54,7 @@ public class Commit implements Serializable {
      * List all the method below.
      */
 
+
     /** Read a Commit from file. */
     public static Commit readCommit(String commitId) {
         if (commitId == null) {
@@ -69,6 +70,102 @@ public class Commit implements Serializable {
 
         return readObject(file, Commit.class);
     }
+
+    /**
+     * Returns a set of all the ancestor ids of the given commit.
+     */
+    public static List<String> ancestors(String commitId) {
+        if (commitId == null) {
+            return null;
+        }
+
+        List<String> res = new LinkedList<>();
+
+        // Iterate through current commits list.
+        Commit current = readCommit(commitId);
+        Commit ancestor = readCommit(current.parent1);
+
+        while (ancestor != null) {
+            res.add(ancestor.name);
+            ancestor = Commit.readCommit(ancestor.parent1);
+        }
+
+        return res;
+    }
+
+    /**
+     * Find the split commit of the two branches.
+     */
+    public static String splitId(String id, String otherId) {
+        List<String> myAncestors = Commit.ancestors(id);
+        List<String> otherAncestors = Commit.ancestors(otherId);
+
+        if (myAncestors.contains(otherId)) {
+            return otherId;
+        }
+
+        if (otherAncestors.contains(id)) {
+            return id;
+        }
+
+        Set<String> set = new TreeSet<>(otherAncestors);
+        for (String firstId: myAncestors) {
+            if (set.contains(firstId)) {
+                return firstId;
+            }
+        }
+
+        return null; // which will  never happen in our case, cause all branches comes from init commit
+    }
+
+    /**
+     * Return true if the file in second commit is different from the first commit.
+     * Assume the file exist in both commits.
+     */
+    public static boolean isModified(String fileName, Commit first, Commit second) {
+        return !first.getBlob(fileName).equals(second.getBlob(fileName));
+    }
+
+    /**
+     * Returns a new blob to resolve a conflict in a file between two commits.
+     * One of them could possibly not track the give file, not both.
+     */
+    public static String conflict(String fileName, Commit first, Commit second) {
+        File fileDir = Utils.join(Repository.BlOBS_DIR, fileName);
+        StringBuffer resolved = new StringBuffer("<<<<<<< HEAD\n");
+        String firstVersion = first.getBlob(fileName);
+        String secondVersion = second.getBlob(fileName);
+        File firstFile = Utils.join(fileDir, firstVersion);
+        File secondFile = Utils.join(fileDir, secondVersion);
+
+        if (firstVersion == null) {
+            resolved.append("");
+        } else {
+            String firstContent = Utils.readContentsAsString(firstFile);
+            resolved.append(firstContent);
+        }
+
+        resolved.append("======\n");
+
+        if (secondVersion == null) {
+            resolved.append("");
+        } else {
+            String secondContent = Utils.readContentsAsString(secondFile);
+            resolved.append(secondContent);
+        }
+
+        resolved.append(">>>>>>>\n");
+
+        String resolvedString = resolved.toString();
+        String blobId = Utils.sha1(resolvedString);
+
+        File blob = Utils.join(fileDir, blobId);
+        Utils.writeContents(blob, resolvedString);
+
+        return blobId;
+    }
+
+
 
 
     /** Save a Commit. */
@@ -103,6 +200,13 @@ public class Commit implements Serializable {
         return sha1(arr);
     }
 
+    /**
+     * Returns all the files this commit is tracked.
+     */
+    public Set<String> files() {
+        return blobMap.keySet();
+    }
+
     /** Check if this commit contains a file. */
     public boolean containsFile(String fileName) {
         return blobMap.containsKey(fileName);
@@ -114,7 +218,7 @@ public class Commit implements Serializable {
     }
 
 
-    /** Check if the content of this file the same with the commit version. */
+    /** Check if the content of this file version the same with the commit version. */
     public boolean isIdentical(String name, String shaValue) {
         return shaValue.equals(blobMap.get(name));
     }
@@ -156,10 +260,10 @@ public class Commit implements Serializable {
     /** Clone from a parent commit and incorporate the changes from the stage area.
      *  Returns the sha1 value of new commit.
      */
-    static String cloneAndChange(String parent, Map<String, String> stage, Set<String> removed, String m) {
+    static String cloneAndChange(String parent, Map<String, String> stage, Set<String> removed, String m, String parent2) {
         Commit p = readCommit(parent);
         Date d = new Date();
-        Commit c = new Commit(m, d, parent, null);
+        Commit c = new Commit(m, d, parent, parent2);
 
         c.blobMap = p.blobMap;
         for (Map.Entry<String, String> pair: stage.entrySet()) {
