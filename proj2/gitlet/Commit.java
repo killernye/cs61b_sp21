@@ -231,7 +231,8 @@ public class Commit implements Serializable {
         sb.append(name);
         sb.append('\n');
 
-        String pattern = "EEE, d MMM yyyy HH:mm:ss Z";
+        sb.append("Date: ");
+        String pattern = "EEE MMM d HH:mm:ss yyyy Z";
         SimpleDateFormat sdf = new SimpleDateFormat(pattern);
         String a  = sdf.format(date);
         sb.append(a);

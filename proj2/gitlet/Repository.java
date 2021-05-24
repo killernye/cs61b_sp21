@@ -46,7 +46,7 @@ public class Repository implements Serializable {
     public Repository() {
         head = "master";
 
-        String message = "init commit";
+        String message = "initial commit";
         Date date = new Date(0);
         String commit = Commit.createCommit(message, date, null, null);
 

@@ -17,14 +17,11 @@ public class test {
 //        Commit c = new Commit("nihao");
 //        c.saveCommit();
 
-        Set<String> ss = new TreeSet<>();
-        ss.add("one");
-        ss.add("two");
-        ss.add("q");
-        ss.add("a");
-        for (String s: ss) {
-            System.out.println(s);
-        }
 
+       Date date = new Date();
+       Formatter f = new Formatter();
+       f.format("Date: %tc", date);
+       String s = f.toString();
+       System.out.println(s);
     }
 }
