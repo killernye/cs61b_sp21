@@ -24,13 +24,13 @@ public class Repository implements Serializable {
     Map<String, String> branches;
 
     /** Staging Area. */
-    Map<String, String> staged;
+    Map<String, String> staged; //TODO CHANGE staged to added
     Set<String> removed;
 
-    /** Head Pointer which points the branch we are currently working with. */
+    /** Head Pointer which points to the branch we are currently working with. */
     String head;
 
-
+    // TODO access modifier revise to package-private
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
@@ -128,6 +128,38 @@ public class Repository implements Serializable {
         saveRepo(repo);
 
     }
+
+    /**
+     * Unstage the File if it is in the added.
+     * Stage for removal if it's in the last commit and delete from working directory.
+     */
+    public static void rm(String fileName) {
+        if (!isInit()) {
+            Utils.message("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
+
+        Repository repo = readRepo();
+
+        File inFile = Utils.join(CWD, fileName);
+
+        if (!isStaged(repo, fileName) && !headPtr(repo).containsFile(fileName)) {
+            Utils.message("No reason to remove the file.");
+            System.exit(0);
+        }
+
+        if (isStaged(repo, fileName)) {
+            offStage(repo, fileName);
+        }
+
+        if (headPtr(repo).containsFile(fileName)) {
+            repo.removed.add(fileName);
+            if (inFile.exists()) {
+                Utils.restrictedDelete(inFile);
+            }
+        }
+    }
+
 
     /**
      * Snapshot the staging area making a commit.
@@ -548,6 +580,7 @@ public class Repository implements Serializable {
     }
 
     /** add a pair of file and its sha1 value to stage area. */
+    //TODO  should change the name to stageForAddition
     private static void staging(Repository repo, File infile) {
         byte[] contents = Utils.readContents(infile);
         String sha1 = Utils.sha1(contents);
@@ -560,6 +593,7 @@ public class Repository implements Serializable {
     }
 
     /** Remove a file from staging area. */
+    // TODO: Refactor: offstage ===> removeFromAddition
     private static void offStage(Repository repo, String fileName) {
         if (!isStaged(repo, fileName)) {
             Utils.message("File is not on the stage.");
@@ -570,6 +604,7 @@ public class Repository implements Serializable {
     }
 
     /** Check if a file in the staging area. */
+    // TODO Refactor: isStaged ===> isStagedForAddition
     private static boolean isStaged(Repository repo, String fileName) {
         return repo.staged.containsKey(fileName);
     }

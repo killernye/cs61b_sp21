@@ -28,6 +28,11 @@ public class Main {
                 fileName = args[1];
                 Repository.add(fileName);
                 break;
+            case "rm":
+                validateNumArgs("add", args, 2);
+                fileName = args[1];
+                Repository.rm(fileName);
+                break;
             case "log":
                 validateNumArgs("log", args, 1);
                 Repository.log();
