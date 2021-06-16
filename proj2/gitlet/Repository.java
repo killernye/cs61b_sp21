@@ -188,6 +188,7 @@ public class Repository implements Serializable {
         String current = repo.branches.get(repo.head);
         String commit = Commit.cloneAndChange(current, repo.staged, repo.removed, message, null);
         repo.staged.clear();
+        repo.removed.clear();
 
 
         // change repo metadata
@@ -241,11 +242,19 @@ public class Repository implements Serializable {
         }
 
         List<String> commits = Utils.plainFilenamesIn(COMMITS_DIR);
+        Boolean flag = false;
+
         for (String fileName: commits) {
             Commit c = Commit.readCommit(fileName);
             if (c.message.equals(message)) {
+                flag = true;
                 System.out.println(c.name);
             }
+        }
+
+        if (!flag) {
+            Utils.message("Found no commit with that message.");
+            System.exit(0);
         }
     }
 
@@ -307,22 +316,31 @@ public class Repository implements Serializable {
             System.exit(0);
         }
 
+
+
+        //  Restore working directory from the given branch commit
+        //  Delete the files not tracked by the given branch
+        Commit cur = headPtr(repo);
+        Set<String> oldFiles = cur.files();
+
+        // TODO: Write a untrackedFiles() method
+        // List<String> workingFile = Utils.plainFilenamesIn(CWD);
+        // delete all the files in (workingFile - untrackedFiles)
+
+
         repo.head = branch;
         repo.staged.clear();
         repo.removed.clear();
         Commit current = headPtr(repo);
 
-        //  Restore working directory from the given branch commit
-        //  Delete the files not tracked by the given branch
-        List<String> workingFile = Utils.plainFilenamesIn(CWD);
-        for (String fileName: workingFile) {
+
+        for (String fileName: oldFiles) {
             if (!current.containsFile(fileName)) {
                 File file = Utils.join(CWD, fileName);
                 Utils.restrictedDelete(file);
-            } else {
-                current.checkout(fileName);
             }
         }
+        current.checkout();
 
         saveRepo(repo);
     }

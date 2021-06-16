@@ -230,6 +230,16 @@ public class Commit implements Serializable {
         sb.append("commit ");
         sb.append(name);
         sb.append('\n');
+        if (parent2 != null) {
+            String p1 = parent1.substring(0, 7);
+            String p2 = parent2.substring(0, 7);
+
+            sb.append("merge: ");
+            sb.append(p1);
+            sb.append(" ");
+            sb.append(p2);
+            sb.append('\n');
+        }
 
         sb.append("Date: ");
         String pattern = "EEE MMM d HH:mm:ss yyyy Z";
@@ -256,6 +266,14 @@ public class Commit implements Serializable {
 
         byte[] contents = Utils.readContents(inFile);
         Utils.writeContents(outFile, contents);
+    }
+
+    /** Put all the file tracked by this commit to the working directory.*/
+    public void checkout() {
+        Set<String> files = blobMap.keySet();
+        for (String fileName: files) {
+            checkout(fileName);
+        }
     }
 
     /** Clone from a parent commit and incorporate the changes from the stage area.
