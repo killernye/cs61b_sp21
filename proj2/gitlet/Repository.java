@@ -186,13 +186,14 @@ public class Repository implements Serializable {
 
         // copy HEAD commit and change the file in the staged
         String current = repo.branches.get(repo.head);
-        String commit = Commit.cloneAndChange(current, repo.staged, repo.removed, message, null);
+        String commit = Commit.cloneAndChange(current, repo.staged, repo.removed, message, parent2);
         repo.staged.clear();
         repo.removed.clear();
 
 
         // change repo metadata
         repo.branches.put(repo.head, commit);
+        //TODO repo.branches.put(branch, commit);  这里API不适合，PARENT2对应的分支也要更新
         saveRepo(repo);
     }
 
@@ -348,7 +349,7 @@ public class Repository implements Serializable {
     /**
      * Checks out all the files tracked by the given commit.
      */
-    public static void reset(String commitId) { //TODO
+    public static void reset(String commitId) {
         if (!isInit()) {
             Utils.message("Not in an initialized Gitlet directory.");
             System.exit(0);
@@ -375,7 +376,7 @@ public class Repository implements Serializable {
         //  Restore working directory from the given branch commit
         //  Delete the files not tracked by the given branch
         List<String> workingFile = Utils.plainFilenamesIn(CWD);
-        for (String fileName: workingFile) {
+        for (String fileName: workingFile) { //TODO 这一段是错的啊，可以参照CHECKOUT来修改，untracked files shouldn't be delete
             if (!current.containsFile(fileName)) {
                 File file = Utils.join(CWD, fileName);
                 Utils.restrictedDelete(file);
@@ -447,6 +448,7 @@ public class Repository implements Serializable {
     }
 
     /** Merge Current branch to the given branch. */
+    //TODO if-else 语句太复杂了，没有注释，后来者根本没法看懂
     public static void merge(String other) {
         if (!isInit()) {
             Utils.message("Not in an initialized Gitlet directory.");
@@ -512,7 +514,7 @@ public class Repository implements Serializable {
                         String res = Commit.conflict(fileName, firstC, secondC);
                         repo.staged.put(fileName, res);
                         writeFile(fileName, res);
-                        message = "Encountered a merge conflict.";
+                        System.out.println("Encountered a merge conflict.");
                     }
                 } else if (!firstC.containsFile(fileName)) {
                     String blob = secondC.getBlob(fileName);
@@ -526,7 +528,7 @@ public class Repository implements Serializable {
                             String res = Commit.conflict(fileName, firstC, secondC);
                             repo.staged.put(fileName, res);
                             writeFile(fileName, res);
-                            message = "Encountered a merge conflict.";
+                            System.out.println("Encountered a merge conflict.");
                         }
                     } else if (Commit.isModified(fileName, splitC, secondC)) {
                         String blob = secondC.getBlob(fileName);
@@ -538,7 +540,7 @@ public class Repository implements Serializable {
                         String res = Commit.conflict(fileName, firstC, secondC);
                         repo.staged.put(fileName, res);
                         writeFile(fileName, res);
-                        message = "Encountered a merge conflict.";
+                        System.out.println("Encountered a merge conflict.");
                     } else {
                         repo.removed.add(fileName);
                     }
@@ -547,7 +549,7 @@ public class Repository implements Serializable {
                         String res = Commit.conflict(fileName, firstC, secondC);
                         repo.staged.put(fileName, res);
                         writeFile(fileName, res);
-                        message = "Encountered a merge conflict.";
+                        System.out.println("Encountered a merge conflict.");
                     }
                 }
             }
